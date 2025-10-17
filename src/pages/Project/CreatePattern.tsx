@@ -1,13 +1,19 @@
 import { useState } from 'react';
-import type { DragEvent, ChangeEvent } from 'react';
+import type { DragEvent, ChangeEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
+import patternService from '../../services/patternService';
 
 const CreatePattern = () => {
+  const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [patternName, setPatternName] = useState('');
   const [textDescription, setTextDescription] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const acceptedFileTypes = ['image/png', 'image/jpg', 'image/jpeg', 'application/pdf'];
+  const acceptedFileTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'];
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -51,17 +57,43 @@ const CreatePattern = () => {
     setTextDescription(e.target.value);
   };
 
-  const handleGenerate = () => {
-    if (!uploadedFile && !textDescription.trim()) {
-      alert('Please either upload a sketch or provide a text description');
+  const handleGenerate = async () => {
+    // Validation
+    if (!uploadedFile) {
+      setError('Please upload an image file');
       return;
     }
 
-    // TODO: Implement pattern generation logic
-    console.log('Generate pattern with:', {
-      file: uploadedFile,
-      description: textDescription
-    });
+    if (!patternName.trim()) {
+      setError('Please provide a pattern name');
+      return;
+    }
+
+    setError(null);
+    setIsUploading(true);
+
+    try {
+      // Create FormData
+      const formData = new FormData();
+      formData.append('name', patternName.trim());
+      formData.append('description', textDescription.trim() || '');
+      formData.append('original_image', uploadedFile);
+
+      // Upload pattern
+      const response = await patternService.createPattern(formData);
+
+      if (response.success && response.pattern) {
+        // Navigate to processing screen
+        navigate(`/project/processing/${response.pattern.id}`);
+      } else {
+        setError('Failed to create pattern. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error creating pattern:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create pattern. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -72,6 +104,26 @@ const CreatePattern = () => {
         {/* Header Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Create New Pattern</h2>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Pattern Name Section */}
+        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Pattern Name</h3>
+          <input
+            type="text"
+            value={patternName}
+            onChange={(e) => setPatternName(e.target.value)}
+            placeholder="Enter a name for your pattern (e.g., Summer Dress Pattern)"
+            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-900"
+            disabled={isUploading}
+          />
         </div>
 
         {/* Upload Section */}
@@ -137,13 +189,14 @@ const CreatePattern = () => {
 
         {/* Text Description Section */}
         <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Or Describe Your Design (Text)</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Description (Optional)</h3>
 
           <textarea
             value={textDescription}
             onChange={handleTextChange}
-            placeholder='Text description: e.g., "A-line midi dress with short sleeves"'
+            placeholder='Additional details: e.g., "A-line midi dress with short sleeves, pleated skirt"'
             className="w-full min-h-[150px] p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none resize-none text-gray-900"
+            disabled={isUploading}
           />
         </div>
 
@@ -151,9 +204,17 @@ const CreatePattern = () => {
         <div className="flex justify-end mb-6">
           <button
             onClick={handleGenerate}
-            className="bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg"
+            disabled={isUploading || !uploadedFile || !patternName.trim()}
+            className="bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Generate
+            {isUploading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Processing...
+              </>
+            ) : (
+              'Generate Pattern'
+            )}
           </button>
         </div>
 
