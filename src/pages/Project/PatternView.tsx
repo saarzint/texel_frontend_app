@@ -37,15 +37,15 @@ const PatternView = () => {
     }
   };
 
-  const handleDownloadDXF = async () => {
-    if (!pattern) return;
-    try {
-      const { file_url } = await patternService.downloadDXF(pattern.id);
-      window.open(file_url, '_blank');
-    } catch (err) {
-      alert('Failed to download DXF file');
-    }
-  };
+  // const handleDownloadDXF = async () => {
+  //   if (!pattern) return;
+  //   try {
+  //     const { file_url } = await patternService.downloadDXF(pattern.id);
+  //     window.open(file_url, '_blank');
+  //   } catch (err) {
+  //     alert('Failed to download DXF file');
+  //   }
+  // };
 
   const handleDownloadPDF = async () => {
     if (!pattern) return;

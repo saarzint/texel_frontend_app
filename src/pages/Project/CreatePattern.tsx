@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { DragEvent, ChangeEvent, FormEvent } from 'react';
+import type { DragEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import patternService from '../../services/patternService';
